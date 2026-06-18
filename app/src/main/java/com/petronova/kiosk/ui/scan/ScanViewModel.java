@@ -1,5 +1,6 @@
 package com.petronova.kiosk.ui.scan;
 
+import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
@@ -19,9 +20,11 @@ import java.util.concurrent.Future;
 public class ScanViewModel extends ViewModel {
 
     public enum ScanState {
-        IDLE, SCANNING_FINGERPRINT, SCANNING_NFC,
+        IDLE, SCANNING_FINGERPRINT, SCANNING_NFC, SCANNING_QR,
         SUCCESS, ERROR, CANCELLED
     }
+
+    private static final int CI_DIGITS = 11;
 
     private final MutableLiveData<ScanState>  state         = new MutableLiveData<>(ScanState.IDLE);
     private final MutableLiveData<Worker>     detectedWorker = new MutableLiveData<>();
@@ -77,6 +80,44 @@ public class ScanViewModel extends ViewModel {
                 state.postValue(ScanState.ERROR);
             }
         });
+    }
+
+    // ─── Escaneo QR (botón físico QS805 → broadcast com.qs.scancode) ─────────
+
+    public void onQrScanned(@Nullable String data) {
+        String ci = extractCi(data);
+        if (ci == null) {
+            errorMessage.postValue("QR no contiene CI válido");
+            state.postValue(ScanState.ERROR);
+            return;
+        }
+        state.setValue(ScanState.SCANNING_QR);
+        WorkerRepository.getInstance().findByCi(ci).observeForever(result -> {
+            if (result.success) {
+                detectedWorker.postValue(result.data);
+                state.postValue(ScanState.SUCCESS);
+            } else {
+                errorMessage.postValue(result.error);
+                state.postValue(ScanState.ERROR);
+            }
+        });
+    }
+
+    @Nullable
+    private static String extractCi(@Nullable String data) {
+        if (data == null) return null;
+        int idx = data.toUpperCase().indexOf("CI:");
+        if (idx < 0) return null;
+        StringBuilder sb = new StringBuilder(CI_DIGITS);
+        for (int i = idx + 3; i < data.length() && sb.length() < CI_DIGITS; i++) {
+            char c = data.charAt(i);
+            if (Character.isDigit(c)) {
+                sb.append(c);
+            } else if (sb.length() > 0) {
+                break;
+            }
+        }
+        return sb.length() == CI_DIGITS ? sb.toString() : null;
     }
 
     // ─── Observables ────────────────────────────────────────────────────────

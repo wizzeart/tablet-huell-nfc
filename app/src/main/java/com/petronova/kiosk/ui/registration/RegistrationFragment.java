@@ -1,11 +1,16 @@
 package com.petronova.kiosk.ui.registration;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import com.petronova.kiosk.R;
@@ -32,10 +37,19 @@ public class RegistrationFragment extends Fragment {
     /** Tiempo que permanece visible el modal flotante de preview antes de ocultarse. */
     private static final long PREVIEW_VISIBLE_MS = 3500L;
 
+    // Scanner QR del hardware QS805 (réplica de QS805DEMO/MainActivity).
+    /** Acción que dispara el escaneo del lector integrado. */
+    private static final String ACTION_SCAN_TRIGGER = "ismart.intent.scandown";
+    /** Acción del broadcast con el resultado del escaneo. */
+    private static final String ACTION_SCAN_RESULT  = "com.qs.scancode";
+    /** Cantidad de dígitos del carnet a tomar tras "CI:". */
+    private static final int    CI_DIGITS           = 11;
+
     private FragmentRegistrationBinding binding;
     private RegistrationViewModel       viewModel;
     private Mode                        mode;
     private final Runnable              hidePreviewRunnable = this::hidePreviewModal;
+    private BroadcastReceiver           qrScanReceiver;
 
     public static RegistrationFragment newInstance(Mode mode) {
         RegistrationFragment f = new RegistrationFragment();
@@ -83,6 +97,9 @@ public class RegistrationFragment extends Fragment {
         });
 
         binding.btnRegBack.setOnClickListener(v -> requireActivity().getSupportFragmentManager().popBackStack());
+
+        // Escaneo del QR del carnet (lector QS805 integrado)
+        setupQrScanner();
 
         observeViewModel();
 
@@ -195,6 +212,70 @@ public class RegistrationFragment extends Fragment {
             }).start();
     }
 
+    // ─── Escaneo del QR del carnet (lector QS805) ────────────────────────────
+
+    /**
+     * Configura el botón y el receiver del lector QR integrado.
+     * Réplica de QS805DEMO: se dispara con el broadcast {@link #ACTION_SCAN_TRIGGER}
+     * y el resultado llega por {@link #ACTION_SCAN_RESULT} en el extra "data".
+     */
+    private void setupQrScanner() {
+        qrScanReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (intent == null || intent.getExtras() == null) return;
+                String data = intent.getExtras().getString("data");
+                onQrScanned(data);
+            }
+        };
+        IntentFilter filter = new IntentFilter(ACTION_SCAN_RESULT);
+        ContextCompat.registerReceiver(requireContext(), qrScanReceiver, filter,
+                ContextCompat.RECEIVER_EXPORTED);
+
+        binding.btnScanQr.setOnClickListener(v -> {
+            // Dispara el escaneo del lector integrado
+            requireContext().sendBroadcast(new Intent(ACTION_SCAN_TRIGGER));
+        });
+    }
+
+    /**
+     * Procesa el texto del QR: toma los {@link #CI_DIGITS} dígitos que siguen a "CI:",
+     * los coloca en el input y pulsa "Buscar" automáticamente.
+     */
+    private void onQrScanned(@Nullable String data) {
+        if (binding == null) return;
+        String ci = extractCi(data);
+        if (ci == null) {
+            ToastSpeaker.show(requireContext(), getString(R.string.reg_qr_no_ci));
+            return;
+        }
+        binding.etCi.setText(ci);
+        binding.btnSearchWorker.performClick();
+    }
+
+    /**
+     * Extrae los {@link #CI_DIGITS} dígitos que aparecen tras la primera ocurrencia de
+     * "CI:" (ignorando espacios entre el prefijo y los dígitos). Devuelve null si no
+     * se encuentra "CI:" o no hay dígitos suficientes.
+     */
+    @Nullable
+    private static String extractCi(@Nullable String data) {
+        if (data == null) return null;
+        int idx = data.toUpperCase().indexOf("CI:");
+        if (idx < 0) return null;
+        StringBuilder sb = new StringBuilder(CI_DIGITS);
+        for (int i = idx + 3; i < data.length() && sb.length() < CI_DIGITS; i++) {
+            char c = data.charAt(i);
+            if (Character.isDigit(c)) {
+                sb.append(c);
+            } else if (sb.length() > 0) {
+                // Ya empezaron los dígitos y aparece un separador no-dígito → fin del CI
+                break;
+            }
+        }
+        return sb.length() == CI_DIGITS ? sb.toString() : null;
+    }
+
     // ─── NFC en modo registro ────────────────────────────────────────────────
 
     private void setupNfcCapture() {
@@ -224,6 +305,14 @@ public class RegistrationFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        if (qrScanReceiver != null) {
+            try {
+                requireContext().unregisterReceiver(qrScanReceiver);
+            } catch (IllegalArgumentException ignored) {
+                // Ya estaba desregistrado.
+            }
+            qrScanReceiver = null;
+        }
         if (binding != null) {
             binding.cardRegPreview.removeCallbacks(hidePreviewRunnable);
         }

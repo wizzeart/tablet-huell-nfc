@@ -1,11 +1,16 @@
 package com.petronova.kiosk.ui.scan;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import com.petronova.kiosk.R;
@@ -23,9 +28,12 @@ import com.petronova.kiosk.util.ToastSpeaker;
  */
 public class ScanFragment extends Fragment {
 
+    private static final String ACTION_SCAN_RESULT = "com.qs.scancode";
+
     private FragmentScanBinding binding;
     private ScanViewModel       viewModel;
     private boolean             fuelNavigationDone = false;
+    private BroadcastReceiver   qrScanReceiver;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
@@ -51,10 +59,20 @@ public class ScanFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        // Activar NFC en foreground para este fragment
         MainActivity activity = (MainActivity) requireActivity();
         SensorCoordinator.getInstance().activateNfc();
         activity.getNfcController().startReading(uid -> viewModel.onNfcTagDetected(uid));
+
+        // Registrar receptor del escáner QR físico (hardware QS805)
+        qrScanReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (intent == null || intent.getExtras() == null) return;
+                viewModel.onQrScanned(intent.getExtras().getString("data"));
+            }
+        };
+        ContextCompat.registerReceiver(requireContext(), qrScanReceiver,
+                new IntentFilter(ACTION_SCAN_RESULT), ContextCompat.RECEIVER_EXPORTED);
     }
 
     @Override
@@ -63,6 +81,10 @@ public class ScanFragment extends Fragment {
         MainActivity activity = (MainActivity) requireActivity();
         activity.getNfcController().stopReading();
         SensorCoordinator.getInstance().deactivateAll();
+        if (qrScanReceiver != null) {
+            requireContext().unregisterReceiver(qrScanReceiver);
+            qrScanReceiver = null;
+        }
     }
 
     // ─── Observar ViewModel ──────────────────────────────────────────────────
@@ -80,6 +102,12 @@ public class ScanFragment extends Fragment {
                     binding.tvScanInstruction.setText(getString(R.string.scan_waiting_nfc));
                     binding.tvSensorIndicator.setText("● NFC");
                     binding.tvSensorIndicator.setTextColor(getColor(R.color.sensor_active));
+                    break;
+                case SCANNING_QR:
+                    binding.tvScanInstruction.setText(getString(R.string.scan_waiting_qr));
+                    binding.tvSensorIndicator.setText("● QR");
+                    binding.tvSensorIndicator.setTextColor(getColor(R.color.sensor_active));
+                    binding.llWorkerData.setVisibility(View.GONE);
                     break;
                 case SUCCESS:
                     binding.tvSensorIndicator.setTextColor(getColor(R.color.sensor_success));

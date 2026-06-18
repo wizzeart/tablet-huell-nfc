@@ -2,6 +2,7 @@
 <!-- Equivalente de web/templates/registration.html (huella y NFC) -->
 <FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/color_background">
@@ -48,21 +49,43 @@
                     android:layout_height="1dp" />
             </LinearLayout>
 
-            <!-- Campo CI -->
-            <com.google.android.material.textfield.TextInputLayout
-                android:layout_width="320dp"
+            <!-- Campo CI + botón de escaneo QR -->
+            <LinearLayout
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:hint="@string/reg_enter_ci"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/et_ci"
-                    android:layout_width="match_parent"
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="320dp"
                     android:layout_height="wrap_content"
-                    android:inputType="number"
-                    android:maxLength="20"
-                    android:textColor="@color/color_text_primary" />
-            </com.google.android.material.textfield.TextInputLayout>
+                    android:hint="@string/reg_enter_ci"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/et_ci"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="number"
+                        android:maxLength="20"
+                        android:textColor="@color/color_text_primary" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <ImageButton
+                    android:id="@+id/btn_scan_qr"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:layout_marginStart="12dp"
+                    android:padding="12dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_qr_scan"
+                    app:tint="@color/color_primary"
+                    android:background="@drawable/bg_qr_button"
+                    android:elevation="8dp"
+                    android:outlineSpotShadowColor="@color/color_primary"
+                    android:outlineAmbientShadowColor="@color/color_primary"
+                    android:contentDescription="@string/reg_scan_qr" />
+            </LinearLayout>
 
             <Button
                 android:id="@+id/btn_search_worker"

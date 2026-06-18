@@ -16,6 +16,7 @@
     <!-- Escaneo -->
     <string name="scan_waiting_fingerprint">Coloque su dedo en el sensor</string>
     <string name="scan_waiting_nfc">Acerque su tarjeta NFC</string>
+    <string name="scan_waiting_qr">Leyendo QR del carnet…</string>
     <string name="scan_processing">Procesando…</string>
     <string name="scan_success">Identidad verificada</string>
     <string name="scan_error_not_recognized">Huella no reconocida</string>
@@ -27,6 +28,8 @@
     <!-- Registro -->
     <string name="reg_enter_ci">Ingrese el Carnet de Identidad</string>
     <string name="reg_search">Buscar</string>
+    <string name="reg_scan_qr">Escanear QR del carnet</string>
+    <string name="reg_qr_no_ci">No se encontró \"CI:\" en el código QR</string>
     <string name="reg_worker_not_found">Trabajador no encontrado</string>
     <string name="reg_place_finger">Coloque el dedo en el sensor</string>
     <string name="reg_place_nfc">Acerque la tarjeta NFC</string>

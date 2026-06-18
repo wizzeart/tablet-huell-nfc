@@ -1,0 +1,22 @@
+<!-- Ícono de código QR. El tinte lo aplica app:tint del ImageView/Button. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M3,3h8v8H3V3zM5,5v4h4V5H5z" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M3,13h8v8H3v-8zM5,15v4h4v-4H5z" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M13,3h8v8h-8V3zM15,5v4h4V5h-4z" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M6,6h2v2H6V6zM6,16h2v2H6v-2zM16,6h2v2h-2V6z" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M13,13h3v3h-3zM18,13h3v3h-3v-3zM13,18h3v3h-3zM18,18h3v3h-3z" />
+</vector>

@@ -53,9 +53,12 @@ public final class AppConfig {
      * Llama una vez al iniciar la app y cachea el resultado.
      */
     public static String loadPrivateKeyPem(Context context) throws IOException {
-        try (InputStream is = context.getAssets().open("private_key.pem")) {
-            byte[] bytes = is.readAllBytes();
-            return new String(bytes, StandardCharsets.UTF_8).trim();
+        try (InputStream is = context.getAssets().open("private_key.pem");
+             java.io.ByteArrayOutputStream buf = new java.io.ByteArrayOutputStream()) {
+            byte[] chunk = new byte[4096];
+            int n;
+            while ((n = is.read(chunk)) != -1) buf.write(chunk, 0, n);
+            return buf.toString(StandardCharsets.UTF_8.name()).trim();
         }
     }
 }

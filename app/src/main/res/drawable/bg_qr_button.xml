@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Botón QR estilo neón cyberpunk (borde cian sobre fondo oscuro). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/color_surface_elevated" />
+    <stroke
+        android:width="2dp"
+        android:color="@color/color_primary" />
+    <corners android:radius="10dp" />
+</shape>
