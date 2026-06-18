@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Equivalente del modal #pisteroModal en main_screen.html -->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/color_background">
+
+    <!-- Header con borde inferior verde — equivalente border-bottom: 2px solid #00ff96 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="24dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="16dp"
+        android:background="@color/color_surface">
+
+        <TextView
+            android:id="@+id/tv_pistero_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/pistero_title"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/color_pistero"
+            android:letterSpacing="0.08" />
+
+        <Button
+            android:id="@+id/btn_pistero_close"
+            style="@style/KioskButton.Danger"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:text="✕"
+            android:textSize="18sp"
+            android:padding="0dp" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="2dp"
+        android:background="@color/color_pistero" />
+
+    <!-- Área central con icono y controles -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="32dp">
+
+            <!-- Pistero activo actual -->
+            <TextView
+                android:id="@+id/tv_current_pistero"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/pistero_no_active"
+                android:textSize="16sp"
+                android:textColor="@color/color_text_secondary"
+                android:gravity="center"
+                android:layout_marginBottom="32dp" />
+
+            <!-- Ícono de huella (clickable para escanear) -->
+            <ImageView
+                android:id="@+id/iv_fingerprint"
+                android:layout_width="100dp"
+                android:layout_height="140dp"
+                android:src="@drawable/ic_fingerprint"
+                android:contentDescription="@string/btn_scan_fingerprint"
+                android:layout_marginBottom="16dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackgroundBorderless" />
+
+            <!-- Estado del escaneo -->
+            <TextView
+                android:id="@+id/tv_pistero_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/pistero_scan_prompt"
+                android:textSize="16sp"
+                android:textColor="@color/color_text_secondary"
+                android:gravity="center"
+                android:layout_marginBottom="40dp" />
+
+            <!-- Botones de acción -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center">
+
+                <Button
+                    android:id="@+id/btn_scan_fingerprint"
+                    style="@style/KioskButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="52dp"
+                    android:text="@string/btn_scan_fingerprint"
+                    android:paddingStart="24dp"
+                    android:paddingEnd="24dp"
+                    android:layout_marginEnd="16dp" />
+
+                <Button
+                    android:id="@+id/btn_clear_pistero"
+                    style="@style/KioskButton.Danger"
+                    android:layout_width="wrap_content"
+                    android:layout_height="52dp"
+                    android:text="@string/btn_clear_pistero"
+                    android:paddingStart="24dp"
+                    android:paddingEnd="24dp" />
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+
+</LinearLayout>

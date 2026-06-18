@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Marco neón cyberpunk para el preview de la huella (doble borde cian/magenta) -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Resplandor exterior magenta -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/color_surface" />
+            <stroke
+                android:width="1dp"
+                android:color="@color/color_accent" />
+            <corners android:radius="10dp" />
+        </shape>
+    </item>
+
+    <!-- Borde interior cian brillante -->
+    <item
+        android:left="3dp"
+        android:top="3dp"
+        android:right="3dp"
+        android:bottom="3dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:startColor="#0A1A2E"
+                android:endColor="#06121F"
+                android:angle="90" />
+            <stroke
+                android:width="2dp"
+                android:color="@color/color_primary" />
+            <corners android:radius="8dp" />
+        </shape>
+    </item>
+
+</layer-list>

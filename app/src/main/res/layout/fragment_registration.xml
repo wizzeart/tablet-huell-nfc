@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Equivalente de web/templates/registration.html (huella y NFC) -->
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/color_background">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="32dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="32dp">
+
+                <Button
+                    android:id="@+id/btn_reg_back"
+                    style="@style/KioskButton.Outline"
+                    android:layout_width="140dp"
+                    android:layout_height="48dp"
+                    android:text="@string/btn_back" />
+
+                <TextView
+                    android:id="@+id/tv_reg_title"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="REGISTRO BIOMÉTRICO"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/color_primary"
+                    android:gravity="center" />
+
+                <Space
+                    android:layout_width="140dp"
+                    android:layout_height="1dp" />
+            </LinearLayout>
+
+            <!-- Campo CI -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="320dp"
+                android:layout_height="wrap_content"
+                android:hint="@string/reg_enter_ci"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_ci"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="number"
+                    android:maxLength="20"
+                    android:textColor="@color/color_text_primary" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <Button
+                android:id="@+id/btn_search_worker"
+                style="@style/KioskButton"
+                android:layout_width="200dp"
+                android:layout_height="52dp"
+                android:text="@string/reg_search"
+                android:layout_marginTop="16dp" />
+
+            <!-- Datos del trabajador encontrado -->
+            <LinearLayout
+                android:id="@+id/ll_worker_found"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:visibility="gone"
+                android:background="@color/color_surface_elevated"
+                android:padding="20dp"
+                android:layout_marginTop="24dp">
+
+                <TextView
+                    android:id="@+id/tv_found_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/color_text_primary" />
+
+                <TextView
+                    android:id="@+id/tv_found_ci"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="15sp"
+                    android:textColor="@color/color_text_secondary"
+                    android:layout_marginTop="4dp" />
+
+                <Button
+                    android:id="@+id/btn_start_capture"
+                    style="@style/KioskButton"
+                    android:layout_width="240dp"
+                    android:layout_height="52dp"
+                    android:text="Iniciar captura"
+                    android:layout_marginTop="20dp" />
+            </LinearLayout>
+
+            <!-- Instrucción de captura -->
+            <TextView
+                android:id="@+id/tv_capture_instruction"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textSize="18sp"
+                android:textColor="@color/color_primary"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:visibility="gone"
+                android:layout_marginTop="24dp" />
+
+            <!-- Progreso -->
+            <ProgressBar
+                android:id="@+id/progress_capture"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                android:layout_marginTop="16dp"
+                android:indeterminateTint="@color/color_primary" />
+
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- Modal flotante (arriba) con el preview neón de la huella capturada -->
+    <LinearLayout
+        android:id="@+id/card_reg_preview"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="24dp"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="@drawable/bg_neon_preview"
+        android:padding="16dp"
+        android:elevation="16dp"
+        android:outlineSpotShadowColor="@color/color_primary"
+        android:outlineAmbientShadowColor="@color/color_primary"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tv_reg_preview_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="HUELLA CAPTURADA"
+            android:textColor="@color/color_primary"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.15"
+            android:layout_marginBottom="10dp" />
+
+        <ImageView
+            android:id="@+id/iv_reg_preview"
+            android:layout_width="140dp"
+            android:layout_height="180dp"
+            android:scaleType="fitCenter"
+            android:contentDescription="@string/reg_place_finger"
+            android:background="@drawable/bg_neon_preview"
+            android:padding="6dp" />
+
+    </LinearLayout>
+
+</FrameLayout>

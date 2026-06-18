@@ -1,0 +1,120 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Carga secrets.properties (gitignoreado). Cada desarrollador/CI tiene su propio archivo.
+// Copia secrets.properties.example → secrets.properties y rellena los valores reales.
+def secretsFile = rootProject.file("secrets.properties")
+def secrets = new Properties()
+if (secretsFile.exists()) {
+    secrets.load(new FileInputStream(secretsFile))
+} else {
+    throw new GradleException(
+        "Falta el archivo secrets.properties en la raíz del proyecto.\n" +
+        "Copia secrets.properties.example, renómbralo a secrets.properties y rellena los valores."
+    )
+}
+
+android {
+    namespace 'com.petronova.kiosk'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.petronova.kiosk"
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+
+        // Credenciales cargadas desde secrets.properties (nunca hardcodeadas aquí)
+        buildConfigField "String", "DB_HOST",            "\"${secrets.DB_HOST}\""
+        buildConfigField "int",    "DB_PORT",             secrets.DB_PORT
+        buildConfigField "String", "DB_NAME",            "\"${secrets.DB_NAME}\""
+        buildConfigField "String", "DB_USER",            "\"${secrets.DB_USER}\""
+        buildConfigField "String", "DB_PASSWORD",        "\"${secrets.DB_PASSWORD}\""
+        buildConfigField "String", "PETRONOVA_BASE_URL", "\"${secrets.PETRONOVA_BASE_URL}\""
+        buildConfigField "String", "AGENT_ID",           "\"${secrets.AGENT_ID}\""
+        buildConfigField "String", "ADMIN_PASSWORD",     "\"${secrets.ADMIN_PASSWORD}\""
+        buildConfigField "String", "EXIT_PIN",           "\"${secrets.EXIT_PIN}\""
+        buildConfigField "int",    "MIN_CONFIDENCE", '60'
+
+        // Solo ABIs ARM (la tablet es arm64). Evita empaquetar las .so x86 de sherpa-onnx.
+        ndk {
+            abiFilters 'arm64-v8a', 'armeabi-v7a'
+        }
+    }
+
+    buildFeatures {
+        viewBinding true
+        buildConfig true
+    }
+
+    // No comprimir el modelo TTS (.onnx): reduce memoria al empaquetar y permite mmap.
+    androidResources {
+        noCompress 'onnx'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            debuggable true
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+
+    // Permite cargar la clave RSA desde assets sin compresión
+    packagingOptions {
+        resources {
+            excludes += ['META-INF/*.kotlin_module', 'META-INF/versions/9/OSGI-INF/MANIFEST.MF']
+        }
+    }
+}
+
+dependencies {
+    // AndroidX
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.fragment:fragment:1.8.1'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel:2.7.0'
+    implementation 'androidx.lifecycle:lifecycle-livedata:2.7.0'
+    implementation 'androidx.navigation:navigation-fragment:2.7.7'
+    implementation 'androidx.navigation:navigation-ui:2.7.7'
+
+    // PostgreSQL JDBC — jar 42.2.27 PARCHEADO para Android.
+    // Se eliminó del jar la clase org.postgresql.util.PGPropertyMaxResultBufferParser
+    // (la única que usa java.lang.management.ManagementFactory, inexistente en Android
+    // y que causaba NoClassDefFoundError en cada conexión). Una versión compatible de
+    // esa clase, usando Runtime.getRuntime().maxMemory(), está en
+    // app/src/main/java/org/postgresql/util/PGPropertyMaxResultBufferParser.java
+    implementation files('libs/postgresql-42.2.27-android.jar')
+
+    // SDK del lector de huella MX (placa ZY) — MxMscFingerDemoID.
+    // API Java (MxIdMscFingerApiFactory / MxMscBigFingerApi / MxIDFingerAlg).
+    // Las librerías nativas (.so) van en app/src/main/jniLibs (arm64-v8a y armeabi-v7a)
+    // y el acceso GPIO está en android.zyapi.CommonApi (libzyapi_common.so).
+    implementation files('libs/MxMscFingerApi.jar')
+
+    // OkHttp — cliente HTTP para API Petronova
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+
+    // BouncyCastle — para leer clave RSA PKCS#1 (BEGIN RSA PRIVATE KEY)
+    implementation 'org.bouncycastle:bcprov-jdk18on:1.78.1'
+    implementation 'org.bouncycastle:bcpkix-jdk18on:1.78.1'
+
+    // Gson — serialización JSON
+    implementation 'com.google.code.gson:gson:2.11.0'
+
+    // sherpa-onnx — TTS neuronal offline (motor propio embebido, no Google).
+    // classes.jar extraído del AAR oficial v1.13.3; las .so están en jniLibs/.
+    implementation files('libs/sherpa-onnx.jar')
+    // Runtime de las clases Kotlin del jar de sherpa-onnx (data classes / Intrinsics).
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.9.24'
+}

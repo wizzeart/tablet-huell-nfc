@@ -1,0 +1,8 @@
+-keep class org.postgresql.** { *; }
+-keep class org.bouncycastle.** { *; }
+-dontwarn org.postgresql.**
+-dontwarn org.bouncycastle.**
+-dontwarn javax.naming.**
+-dontwarn javax.security.**
+-dontwarn java.lang.management.**
+-dontwarn javax.management.**

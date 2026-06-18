@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Equivalente del modal #locationSelectorModal en main_screen.html -->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/color_background">
+
+    <!-- Header con borde inferior azul — equivalente border-bottom: 2px solid #0096ff -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="24dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="16dp"
+        android:background="@color/color_surface">
+
+        <TextView
+            android:id="@+id/tv_location_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/location_title"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="@color/color_location"
+            android:letterSpacing="0.08" />
+
+        <Button
+            android:id="@+id/btn_location_close"
+            style="@style/KioskButton.Danger"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:text="✕"
+            android:textSize="18sp"
+            android:padding="0dp" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="2dp"
+        android:background="@color/color_location" />
+
+    <TextView
+        android:id="@+id/tv_location_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/location_loading"
+        android:textSize="18sp"
+        android:textColor="@color/color_text_secondary"
+        android:gravity="center"
+        android:padding="48dp"
+        android:visibility="visible" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:id="@+id/ll_location_content"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="24dp" />
+    </ScrollView>
+
+    <Button
+        android:id="@+id/btn_location_save"
+        style="@style/KioskButton"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:text="@string/location_save"
+        android:textSize="16sp"
+        android:layout_margin="16dp"
+        android:visibility="gone" />
+
+</LinearLayout>

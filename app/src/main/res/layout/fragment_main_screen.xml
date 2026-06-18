@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Equivalente de web/templates/main_screen.html -->
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/color_background">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="32dp">
+
+            <!-- Logo: PETRO (cian) + NOVA (amarillo neón con efecto) + etiqueta beta -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="PETRO"
+                    android:textSize="36sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/color_primary"
+                    android:fontFamily="@font/orbitron"
+                    android:shadowColor="#9900FFFF"
+                    android:shadowDx="0"
+                    android:shadowDy="0"
+                    android:shadowRadius="15"
+                    android:letterSpacing="0.2" />
+
+                <TextView
+                    android:id="@+id/tv_logo_nova"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="NOVA"
+                    android:textSize="36sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/color_neon_yellow"
+                    android:fontFamily="@font/orbitron"
+                    android:shadowColor="#99EEFF00"
+                    android:shadowDx="0"
+                    android:shadowDy="0"
+                    android:shadowRadius="12"
+                    android:letterSpacing="0.2" />
+
+                <TextView
+                    android:id="@+id/tv_beta"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="top"
+                    android:text="@string/app_beta_tag"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/color_neon_yellow"
+                    android:fontFamily="@font/orbitron"
+                    android:shadowColor="#99EEFF00"
+                    android:shadowDx="0"
+                    android:shadowDy="0"
+                    android:shadowRadius="10"
+                    android:layout_marginStart="6dp"
+                    android:layout_marginTop="2dp" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Control de Acceso"
+                android:textSize="16sp"
+                android:textColor="@color/color_text_secondary"
+                android:layout_marginBottom="48dp" />
+
+            <!-- Iniciar Escaneo -->
+            <Button
+                android:id="@+id/btn_start_scan"
+                style="@style/KioskButton"
+                android:layout_width="280dp"
+                android:layout_height="64dp"
+                android:text="@string/btn_start_scan"
+                android:textSize="18sp"
+                android:layout_marginBottom="20dp" />
+
+            <!-- Registrar Huella -->
+            <Button
+                android:id="@+id/btn_register_fingerprint"
+                style="@style/KioskButton.Outline"
+                android:layout_width="280dp"
+                android:layout_height="56dp"
+                android:text="@string/btn_register_fingerprint"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Registrar NFC -->
+            <Button
+                android:id="@+id/btn_register_nfc"
+                style="@style/KioskButton.Outline"
+                android:layout_width="280dp"
+                android:layout_height="56dp"
+                android:text="@string/btn_register_nfc"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Pistero (borde verde) — visible en pantalla principal -->
+            <LinearLayout
+                android:id="@+id/ll_pistero_block"
+                android:layout_width="280dp"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:layout_marginBottom="12dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_pistero"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="@string/btn_pistero"
+                    android:textColor="@color/color_pistero"
+                    app:strokeColor="@color/color_pistero"
+                    app:cornerRadius="0dp" />
+
+                <TextView
+                    android:id="@+id/tv_pistero_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/pistero_no_active"
+                    android:textSize="11sp"
+                    android:textColor="@color/color_text_secondary"
+                    android:gravity="center"
+                    android:layout_marginTop="2dp" />
+            </LinearLayout>
+
+            <!-- Tanques (borde amarillo) — oculto hasta validar PIN en Configuración -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_tanques"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="280dp"
+                android:layout_height="56dp"
+                android:text="@string/btn_tanques"
+                android:textColor="@color/color_tank"
+                android:visibility="gone"
+                app:strokeColor="@color/color_tank"
+                app:cornerRadius="0dp"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Ubicaciones (borde azul) — oculto hasta validar PIN en Configuración -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_ubicaciones"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="280dp"
+                android:layout_height="56dp"
+                android:text="@string/btn_ubicaciones"
+                android:textColor="@color/color_location"
+                android:visibility="gone"
+                app:strokeColor="@color/color_location"
+                app:cornerRadius="0dp"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Botón admin oculto (tap 5 veces sobre el logo activa el panel) -->
+            <Button
+                android:id="@+id/btn_admin"
+                style="@style/KioskButton.Outline"
+                android:layout_width="120dp"
+                android:layout_height="40dp"
+                android:text="@string/btn_admin"
+                android:textSize="12sp"
+                android:visibility="gone"
+                android:layout_marginTop="24dp" />
+
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- Configuración: tuerca circular en esquina inferior izquierda -->
+    <ImageButton
+        android:id="@+id/btn_config"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_gravity="bottom|start"
+        android:layout_marginStart="24dp"
+        android:layout_marginBottom="24dp"
+        android:background="@drawable/bg_config_circle"
+        android:contentDescription="@string/btn_config"
+        android:padding="14dp"
+        android:scaleType="centerInside"
+        android:src="@drawable/ic_settings"
+        app:tint="@color/color_text_secondary" />
+
+</FrameLayout>

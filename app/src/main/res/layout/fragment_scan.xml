@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Equivalente de web/templates/scanning.html -->
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/color_background"
+    android:padding="24dp">
+
+    <!-- Indicador de sensor activo -->
+    <TextView
+        android:id="@+id/tv_sensor_indicator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="● SENSOR"
+        android:textColor="@color/sensor_idle"
+        android:textSize="13sp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <ScrollView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:fillViewport="true"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/btn_back_pin"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginBottom="16dp">
+
+        <LinearLayout
+            android:id="@+id/ll_scan_center"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <!-- Icono del sensor activo (Fingerprint SVG) -->
+            <ImageView
+                android:id="@+id/iv_scan_icon"
+                android:layout_width="80dp"
+                android:layout_height="100dp"
+                android:src="@drawable/ic_fingerprint"
+                app:tint="@color/color_primary"
+                android:layout_marginBottom="16dp" />
+
+            <!-- Instrucción -->
+            <TextView
+                android:id="@+id/tv_scan_instruction"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/scan_waiting_fingerprint"
+                android:textSize="22sp"
+                android:textColor="@color/color_text_primary"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Sub-estado -->
+            <TextView
+                android:id="@+id/tv_scan_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textSize="15sp"
+                android:textColor="@color/color_text_secondary"
+                android:gravity="center" />
+
+            <!-- Preview de la huella capturada -->
+            <ImageView
+                android:id="@+id/iv_fingerprint_preview"
+                android:layout_width="150dp"
+                android:layout_height="190dp"
+                android:visibility="gone"
+                android:scaleType="fitCenter"
+                android:contentDescription="@string/scan_waiting_fingerprint"
+                android:background="@drawable/bg_neon_preview"
+                android:padding="8dp"
+                android:elevation="12dp"
+                android:outlineSpotShadowColor="@color/color_primary"
+                android:outlineAmbientShadowColor="@color/color_primary"
+                android:layout_marginTop="16dp" />
+
+            <!-- Datos del trabajador detectado -->
+            <LinearLayout
+                android:id="@+id/ll_worker_data"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:visibility="gone"
+                android:background="@color/color_surface_elevated"
+                android:padding="20dp"
+                android:layout_marginTop="24dp">
+
+                <TextView
+                    android:id="@+id/tv_worker_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="24sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/color_success" />
+
+                <TextView
+                    android:id="@+id/tv_worker_ci"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="16sp"
+                    android:textColor="@color/color_text_secondary"
+                    android:layout_marginTop="4dp" />
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- Botón volver (requiere PIN) -->
+    <Button
+        android:id="@+id/btn_back_pin"
+        style="@style/KioskButton.Outline"
+        android:layout_width="160dp"
+        android:layout_height="48dp"
+        android:text="@string/btn_back"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

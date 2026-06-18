@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.PetronovaKiosk" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="colorPrimary">@color/color_primary</item>
+        <item name="colorPrimaryDark">@color/color_primary_dark</item>
+        <item name="colorAccent">@color/color_accent</item>
+        <item name="android:windowBackground">@color/color_background</item>
+        <item name="android:statusBarColor">@color/color_background</item>
+        <item name="android:navigationBarColor">@color/color_background</item>
+        <item name="android:windowFullscreen">false</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:textColorPrimary">@color/color_text_primary</item>
+        <item name="android:textColorSecondary">@color/color_text_secondary</item>
+        <item name="android:fontFamily">@font/rajdhani</item>
+    </style>
+
+    <!-- Dialog oscuro -->
+    <style name="KioskDialog" parent="Theme.MaterialComponents.Dialog">
+        <item name="android:windowBackground">@color/color_surface</item>
+        <item name="android:textColorPrimary">@color/color_text_primary</item>
+        <item name="colorPrimary">@color/color_primary</item>
+        <item name="android:fontFamily">@font/rajdhani</item>
+    </style>
+
+    <!-- Botón primario cyan/neon -->
+    <style name="KioskButton" parent="Widget.MaterialComponents.Button">
+        <item name="backgroundTint">#1A00FFFF</item> <!-- 10% opacity cyan -->
+        <item name="strokeColor">@color/color_primary</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="android:textColor">@color/color_primary</item>
+        <item name="android:textStyle">bold</item>
+        <item name="cornerRadius">0dp</item>
+        <item name="android:fontFamily">@font/rajdhani</item>
+        <item name="android:letterSpacing">0.1</item>
+    </style>
+
+    <!-- Botón danger rojo/neon -->
+    <style name="KioskButton.Danger">
+        <item name="backgroundTint">#1AFF003C</item>
+        <item name="strokeColor">@color/color_error</item>
+        <item name="android:textColor">@color/color_error</item>
+    </style>
+
+    <!-- Botón secundario borde -->
+    <style name="KioskButton.Outline" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="strokeColor">@color/color_primary</item>
+        <item name="android:textColor">@color/color_primary</item>
+        <item name="cornerRadius">0dp</item>
+        <item name="android:fontFamily">@font/rajdhani</item>
+        <item name="android:letterSpacing">0.1</item>
+    </style>
+</resources>

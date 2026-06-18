@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Equivalente del panel admin en admin.js -->
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="@color/color_background">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="32dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="PANEL DE ADMINISTRACIÓN"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="@color/color_accent"
+            android:layout_marginBottom="32dp" />
+
+        <!-- Contraseña (si se llega directo a este fragment, se pide antes) -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="280dp"
+            android:layout_height="wrap_content"
+            android:hint="@string/admin_password_hint"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_admin_password"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textPassword"
+                android:textColor="@color/color_text_primary" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <Button
+            android:id="@+id/btn_verify_password"
+            style="@style/KioskButton"
+            android:layout_width="200dp"
+            android:layout_height="52dp"
+            android:text="Verificar"
+            android:layout_marginTop="16dp" />
+
+        <!-- Panel de acciones (visible tras verificación) -->
+        <LinearLayout
+            android:id="@+id/ll_admin_actions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:visibility="gone"
+            android:layout_marginTop="32dp">
+
+            <!-- Info del sistema -->
+            <TextView
+                android:id="@+id/tv_system_info_admin"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textSize="13sp"
+                android:textColor="@color/color_text_secondary"
+                android:gravity="center"
+                android:layout_marginBottom="24dp" />
+
+            <!-- Diagnóstico BD -->
+            <Button
+                android:id="@+id/btn_db_ping"
+                style="@style/KioskButton.Outline"
+                android:layout_width="280dp"
+                android:layout_height="52dp"
+                android:text="Diagnóstico BD"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Reiniciar app -->
+            <Button
+                android:id="@+id/btn_restart"
+                style="@style/KioskButton.Outline"
+                android:layout_width="280dp"
+                android:layout_height="52dp"
+                android:text="@string/admin_restart"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Bloquear sistema -->
+            <Button
+                android:id="@+id/btn_lock_system"
+                style="@style/KioskButton.Danger"
+                android:layout_width="280dp"
+                android:layout_height="52dp"
+                android:text="@string/admin_lock"
+                android:layout_marginBottom="12dp" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btn_admin_back"
+            style="@style/KioskButton.Outline"
+            android:layout_width="160dp"
+            android:layout_height="48dp"
+            android:text="@string/btn_back"
+            android:layout_marginTop="24dp" />
+
+    </LinearLayout>
+</ScrollView>

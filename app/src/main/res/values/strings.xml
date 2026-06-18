@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Petronova Kiosk</string>
+    <string name="app_beta_tag">(beta 1.27a)</string>
+
+    <!-- Pantalla principal -->
+    <string name="btn_start_scan">Iniciar Escaneo</string>
+    <string name="btn_register_fingerprint">Registrar Huella</string>
+    <string name="btn_register_nfc">Registrar NFC</string>
+    <string name="btn_config">Configuración</string>
+    <string name="btn_admin">Admin</string>
+    <string name="btn_back">Volver</string>
+    <string name="btn_cancel">Cancelar</string>
+    <string name="btn_confirm">Confirmar</string>
+
+    <!-- Escaneo -->
+    <string name="scan_waiting_fingerprint">Coloque su dedo en el sensor</string>
+    <string name="scan_waiting_nfc">Acerque su tarjeta NFC</string>
+    <string name="scan_processing">Procesando…</string>
+    <string name="scan_success">Identidad verificada</string>
+    <string name="scan_error_not_recognized">Huella no reconocida</string>
+    <string name="scan_error_nfc_not_found">Tarjeta NFC no registrada</string>
+    <string name="scan_error_timeout">Tiempo agotado. Intente de nuevo.</string>
+    <string name="scan_error_sensor_busy">Sensor ocupado. Espere un momento.</string>
+    <string name="scan_cancelled">Escaneo cancelado</string>
+
+    <!-- Registro -->
+    <string name="reg_enter_ci">Ingrese el Carnet de Identidad</string>
+    <string name="reg_search">Buscar</string>
+    <string name="reg_worker_not_found">Trabajador no encontrado</string>
+    <string name="reg_place_finger">Coloque el dedo en el sensor</string>
+    <string name="reg_place_nfc">Acerque la tarjeta NFC</string>
+    <string name="reg_success_fingerprint">Huella registrada correctamente</string>
+    <string name="reg_success_nfc">Tarjeta NFC registrada correctamente</string>
+    <string name="reg_error">Error al registrar. Intente de nuevo.</string>
+
+    <!-- PIN -->
+    <string name="pin_title">Ingrese el PIN para salir</string>
+    <string name="pin_wrong">PIN incorrecto</string>
+    <string name="pin_blocked">Demasiados intentos. Espere %d minutos.</string>
+
+    <!-- Admin -->
+    <string name="admin_password_hint">Contraseña de administrador</string>
+    <string name="admin_wrong_password">Contraseña incorrecta</string>
+    <string name="admin_restart">Reiniciar aplicación</string>
+    <string name="admin_lock">Bloquear sistema</string>
+
+    <!-- DB -->
+    <string name="db_connected">BD conectada</string>
+    <string name="db_error">Sin conexión a BD</string>
+
+    <!-- TTS -->
+    <string name="tts_welcome">Bienvenido, %s</string>
+    <string name="tts_access_granted">Acceso concedido</string>
+    <string name="tts_access_denied">Acceso denegado</string>
+
+    <!-- Tanques -->
+    <string name="btn_tanques">Tanques</string>
+    <string name="tank_title">SELECCIÓN DE TANQUES</string>
+    <string name="tank_loading">Cargando tanques…</string>
+    <string name="tank_empty">No hay tanques disponibles</string>
+    <string name="tank_error">Error al cargar tanques</string>
+    <string name="tank_selected">✓ SELECCIONADO</string>
+    <string name="tank_save">GUARDAR SELECCIÓN</string>
+    <string name="tank_saved_ok">Tanques guardados correctamente</string>
+    <string name="tank_cap">Capacidad:</string>
+    <string name="tank_level">Nivel:</string>
+    <string name="tank_fill">Llenado:</string>
+
+    <!-- Ubicaciones -->
+    <string name="btn_ubicaciones">Ubicaciones</string>
+    <string name="location_title">SELECCIÓN DE UBICACIÓN</string>
+    <string name="location_loading">Cargando ubicaciones…</string>
+    <string name="location_empty">No hay ubicaciones disponibles</string>
+    <string name="location_error">Error al cargar ubicaciones</string>
+    <string name="location_selected">✓ SELECCIONADA</string>
+    <string name="location_save">GUARDAR UBICACIÓN</string>
+    <string name="location_saved_ok">Ubicación guardada correctamente</string>
+
+    <!-- Pistero -->
+    <string name="btn_pistero">Pistero</string>
+    <string name="pistero_no_active">Sin pistero activo</string>
+    <string name="pistero_active_prefix">Pistero activo: </string>
+    <string name="pistero_title">IDENTIFICACIÓN DE PISTERO</string>
+    <string name="pistero_scan_prompt">Presione el botón para escanear</string>
+    <string name="pistero_scan_place_finger">Coloque su dedo en el sensor…</string>
+    <string name="pistero_verifying">Verificando rol de pistero…</string>
+    <string name="pistero_not_recognized">Huella no reconocida. Intente de nuevo.</string>
+    <string name="pistero_not_role">Este usuario no es pistero de esta ubicación.</string>
+    <string name="pistero_no_location">Configure una ubicación antes de identificar el pistero.</string>
+    <string name="pistero_api_error">Error verificando rol. Intente de nuevo.</string>
+    <string name="pistero_identified_prefix">Pistero identificado: </string>
+    <string name="pistero_cleared">Pistero eliminado.</string>
+    <string name="btn_scan_fingerprint">Escanear Huella</string>
+    <string name="btn_clear_pistero">Quitar Pistero</string>
+
+    <!-- Combustible -->
+    <string name="fuel_title">DISPENSAR COMBUSTIBLE</string>
+    <string name="fuel_loading">Consultando asignaciones…</string>
+    <string name="fuel_no_assignment">Sin asignación de combustible</string>
+    <string name="fuel_assignment_error">Error al consultar asignación</string>
+    <string name="fuel_worker">Usuario</string>
+    <string name="fuel_type">Combustible</string>
+    <string name="fuel_assigned">Asignado</string>
+    <string name="fuel_amount_hint">Litros a retirar</string>
+    <string name="fuel_dispense">Confirmar retiro</string>
+    <string name="fuel_select_assignment">Seleccione una asignación</string>
+    <string name="fuel_invalid_amount">Ingrese una cantidad válida</string>
+    <string name="fuel_amount_exceeds">La cantidad supera la asignación disponible</string>
+    <string name="fuel_pistero_required">Debe identificar un pistero antes de registrar un consumo</string>
+    <string name="fuel_consumption_ok">Consumo registrado satisfactoriamente</string>
+    <string name="fuel_consumption_thanks">Gracias por elegirnos, vuelva pronto.</string>
+    <string name="fuel_hardware_pending">Dispensador físico pendiente de conexión</string>
+    <string name="fuel_registering">Registrando consumo…</string>
+    <string name="fuel_confirm_fingerprint">Coloque su huella para confirmar el retiro de %1$s L</string>
+    <string name="fuel_confirm_waiting">Esperando huella…</string>
+    <string name="fuel_confirm_mismatch">La huella no coincide con el usuario identificado</string>
+    <string name="fuel_confirm_failed">No se pudo verificar la huella</string>
+    <string name="fuel_confirm_cancel">Cancelar confirmación</string>
+    <string name="fuel_invoice_title">COMPROBANTE DE RETIRO</string>
+    <string name="fuel_invoice_review">Revise los datos antes de confirmar con su huella</string>
+    <string name="fuel_invoice_proceed">Confirmar con huella</string>
+    <string name="fuel_invoice_user_ci">Usuario y cédula</string>
+    <string name="fuel_invoice_ci">Cédula</string>
+    <string name="fuel_invoice_fuel">Combustible</string>
+    <string name="fuel_invoice_withdraw">Litros a retirar</string>
+    <string name="fuel_invoice_available">Saldo disponible</string>
+    <string name="fuel_invoice_remaining">Saldo después del retiro</string>
+    <string name="fuel_invoice_pistero">Pistero</string>
+    <string name="fuel_invoice_tank">Tanque</string>
+    <string name="fuel_invoice_location">Ubicación</string>
+    <string name="fuel_invoice_no_pistero">No identificado</string>
+    <string name="fuel_invoice_liters_value">%1$s L</string>
+    <string name="fuel_bidon_label">Bidón externo</string>
+    <string name="fuel_bidon_authorized">AUTORIZADO</string>
+    <string name="fuel_bidon_not_authorized">NO AUTORIZADO</string>
+    <string name="fuel_vehicle_label">Vehículos disponibles</string>
+    <string name="fuel_no_vehicles">Sin vehículos asignados</string>
+    <string name="fuel_select_vehicle">Por favor selecciona un vehículo</string>
+    <string name="fuel_invoice_vehicle">Vehículo</string>
+    <string name="fuel_invoice_bidon">Bidón</string>
+    <string name="fuel_invoice_vehicle_bidon">Ninguno (Bidón)</string>
+    <string name="fuel_vehicle_fuel_type">Combustible: %1$s</string>
+</resources>

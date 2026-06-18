@@ -1,0 +1,45 @@
+# ─── Build outputs ────────────────────────────────────────────────────────────
+build/
+app/build/
+**/build/
+
+# ─── Gradle ───────────────────────────────────────────────────────────────────
+.gradle/
+gradle-app.setting
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+# ─── Android Studio / IntelliJ ────────────────────────────────────────────────
+.idea/
+*.iml
+*.iws
+*.ipr
+.DS_Store
+
+# ─── Secretos — NUNCA subir al repositorio ────────────────────────────────────
+# Archivo local con credenciales reales (cada desarrollador tiene el suyo)
+secrets.properties
+
+# Clave privada RSA usada para firmar peticiones a la API
+app/src/main/assets/private_key.pem
+
+# Keystore de firma del APK
+*.jks
+*.keystore
+keystore.properties
+
+# Variables de entorno locales
+.env
+.env.local
+.env.*.local
+
+# ─── SDK local ────────────────────────────────────────────────────────────────
+# Contiene rutas absolutas de la máquina del desarrollador
+local.properties
+
+# ─── Logs y temporales ────────────────────────────────────────────────────────
+*.log
+*.tmp
+*.swp
+*.swo
+*~
