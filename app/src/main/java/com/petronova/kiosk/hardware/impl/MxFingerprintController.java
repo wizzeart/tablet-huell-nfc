@@ -13,7 +13,6 @@ import android.os.SystemClock;
 import android.util.Base64;
 import android.zyapi.CommonApi;
 
-import com.miaxis.fingerprint.IDFingerprintAlg;
 import com.mx.finger.api.msc.MxIdMscFingerApiFactory;
 import com.mx.finger.api.msc.MxMscBigFingerApi;
 import com.mx.finger.common.MxImage;
@@ -21,9 +20,11 @@ import com.mx.finger.common.Result;
 import com.mx.finger.utils.LogUtils;
 import com.mx.finger.utils.RawBitmapUtils;
 
+import com.petronova.kiosk.config.AppConfig;
 import com.petronova.kiosk.hardware.FingerprintController;
 import com.petronova.kiosk.hardware.MatchResult;
 import com.petronova.kiosk.hardware.RawImage;
+import com.petronova.kiosk.hardware.SourceAfisHelper;
 import com.petronova.kiosk.util.FileLogger;
 
 import java.io.ByteArrayOutputStream;
@@ -40,38 +41,21 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * interfaz {@link FingerprintController}, por lo que integrar este lector NO requiere
  * tocar nada más.
  *
- * Estrategia DEVICE-SIDE (en el firmware del lector), no host-side:
- *   El lector FPR-220K3-ISO calcula la característica (feature) y hace el match en su
- *   propio firmware. NO se usa ningún algoritmo en el host (libIDFingerprintAlg.so /
- *   libmiaxis-iso-lib.so), igual que el test del fabricante (FingerTestApp). Esto evita
- *   la dependencia de libmiaxis-iso-lib.so (que no se distribuye) y funciona con el
- *   firmware ISO de este lector.
- *
- * Componentes del SDK usados (todo vía {@link MxMscBigFingerApi}, protocolo USB):
- *   - captureImage → getFingerImageBig() (detect + readFingerImage + uploadFingerImageBig).
- *   - createTemplate → readFingerFeatureBig(0,RAM) + uploadFingerFeatureBig(0,RAM) → bytes.
- *   - matchTemplates → downloadTemplate(slot,RAM,bytes) + match(0,RAM,1,RAM) en el lector.
- *   - {@link CommonApi} → GPIO para energizar el módulo (libzyapi_common.so).
+ * Estrategia:
+ *   - captureImage  → hardware MX: getFingerImageBig() obtiene imagen grayscale del sensor.
+ *   - createTemplate → SourceAFIS (ISO/IEC 19794-2): extrae minucias de la imagen raw.
+ *   - matchTemplates → SourceAFIS: FingerprintMatcher devuelve score continuo (0–100+).
+ *   - GPIO {@link CommonApi} → energiza el módulo antes de usar el SDK.
  *
  * Notas importantes:
- *   - El feature del lector NO es compatible con SecuGen: requiere re-enrolar.
- *   - match() del firmware devuelve éxito/fallo, no score graduado. Se sintetiza
- *     score=100 en match para conservar la comparación bestScore >= MIN_CONFIDENCE.
+ *   - Los templates son serializaciones SourceAFIS (varios KB, tamaño variable).
+ *   - El score es continuo; matched = score >= AppConfig.MIN_CONFIDENCE (default 40).
  *   - Todas las llamadas nativas van protegidas: ante cualquier Throwable se degrada
  *     de forma segura, nunca crashea.
  */
 public class MxFingerprintController implements FingerprintController {
 
     private static final String TAG = "MxFingerprintCtrl";
-
-    /** Slot de RAM del lector donde queda la feature viva recién capturada. */
-    private static final int SLOT_LIVE  = 0;
-    /** Posición de FLASH usada como scratch para descargar cada candidato de la BD.
-     *  NOTA: el JAR actual solo permite descargar a FLASH (no a RAM), por lo que el
-     *  matching 1:N escribe en flash una vez por candidato. Ver advertencia en matchTemplates. */
-    private static final int MX_TEMPLATE_SIZE = 512;
-    private static final int MX_HOST_BUFFER_SIZE = 1024;
-    private static final int MX_MATCH_SUCCESS = 0;
 
     /** Pines GPIO que energizan el módulo de huella en la placa ZY (ver demo openGPIO/closeGPIO). */
     private static final int GPIO_PIN_A = 18;
@@ -93,8 +77,6 @@ public class MxFingerprintController implements FingerprintController {
     private MxMscBigFingerApi api;
     private CommonApi          gpio;
     private boolean            deviceOpen = false;
-    /** Última feature viva cargada en el slot RAM SLOT_LIVE (para no recargarla en el bucle 1:N). */
-    private byte[]             liveInSlot0 = null;
 
     public MxFingerprintController(Context context) {
         this.context = context.getApplicationContext();
@@ -248,7 +230,6 @@ public class MxFingerprintController implements FingerprintController {
     public void terminate() {
         deviceOpen = false;
         api = null;
-        liveInSlot0 = null;
         gpioPowerOff();
     }
 
@@ -274,102 +255,34 @@ public class MxFingerprintController implements FingerprintController {
 
     @Override
     public byte[] createTemplate(RawImage raw) {
-        // No usa la imagen del host: extrae la feature EN EL LECTOR a partir de la
-        // imagen que captureImage() ya dejó cacheada en el dispositivo (readFingerImage).
-        if (api == null) return null;
-        try {
-            Result<Boolean> read = api.readFingerFeatureBig(SLOT_LIVE, MxMscBigFingerApi.RAM);
-            if (read == null || !read.isSuccess()) {
-                FileLogger.d(TAG, "createTemplate: readFingerFeatureBig falló (code="
-                        + (read != null ? read.code : "null") + ")");
-                return null;
-            }
-            Result<byte[]> up = api.uploadFingerFeatureBig(SLOT_LIVE, MxMscBigFingerApi.RAM);
-            if (up == null || !up.isSuccess() || up.data == null) {
-                FileLogger.d(TAG, "createTemplate: uploadFingerFeatureBig falló (code="
-                        + (up != null ? up.code : "null") + ")");
-                return null;
-            }
-            liveInSlot0 = up.data; // la feature viva ya quedó en RAM SLOT_LIVE del lector
-            return up.data;
-        } catch (Throwable t) {
-            FileLogger.e(TAG, "Error en createTemplate: " + t.getMessage());
-            return null;
+        // Extrae minucias ISO/IEC 19794-2 de la imagen grayscale usando SourceAFIS.
+        // La RawImage ya contiene los píxeles capturados por captureImage(); no se
+        // necesita ninguna operación adicional en el dispositivo.
+        byte[] template = SourceAfisHelper.createTemplate(raw);
+        if (template == null) {
+            FileLogger.d(TAG, "createTemplate: SourceAFIS no pudo extraer minucias");
+        } else {
+            FileLogger.d(TAG, "createTemplate: template ISO 19794-2 generado (" + template.length + " bytes)");
         }
+        return template;
     }
 
     @Override
     public MatchResult matchTemplates(byte[] t1, byte[] t2, int secuLevel) {
-        // Host-side Tz512 matching. MxIDFingerAlg.match(a,b,n) delegates as
-        // mxFingerMatch512_id(b,a,n), so keep stored first and live second here.
+        // Matching ISO/IEC 19794-2 via SourceAFIS. t1 = probe (live), t2 = stored.
+        // secuLevel no se usa: SourceAFIS gestiona internamente su propio umbral de similitud.
         if (t1 == null || t2 == null) {
             return new MatchResult(false, 0);
         }
         try {
-            if (t1.length != MX_TEMPLATE_SIZE || t2.length != MX_TEMPLATE_SIZE) {
-                FileLogger.w(TAG, "matchTemplates: invalid size live=" + t1.length
-                        + ", stored=" + t2.length + " (expected " + MX_TEMPLATE_SIZE + ")");
-                return new MatchResult(false, 0);
-            }
-            int preferredLevel = toMxSecurityLevel(secuLevel);
-            MatchAttempt direct = tryHostMatch(t2, t1, preferredLevel, "512");
-            if (direct.matched) return new MatchResult(true, 100);
-
-            MatchAttempt directSweep = tryHostMatchAllLevels(t2, t1, preferredLevel, "512");
-            if (directSweep.matched) return new MatchResult(true, 100);
-
-            byte[] storedHost = expandToHostBuffer(t2);
-            byte[] liveHost = expandToHostBuffer(t1);
-            MatchAttempt padded = tryHostMatch(storedHost, liveHost, preferredLevel, "1024pad");
-            if (padded.matched) return new MatchResult(true, 100);
-
-            MatchAttempt paddedSweep = tryHostMatchAllLevels(storedHost, liveHost, preferredLevel, "1024pad");
-            return new MatchResult(paddedSweep.matched, paddedSweep.matched ? 100 : 0);
+            double score = SourceAfisHelper.matchTemplates(t1, t2);
+            boolean matched = score >= AppConfig.MIN_CONFIDENCE;
+            FileLogger.d(TAG, "matchTemplates(SourceAFIS): score=" + String.format("%.1f", score)
+                    + ", threshold=" + AppConfig.MIN_CONFIDENCE + ", matched=" + matched);
+            return new MatchResult(matched, (int) score);
         } catch (Throwable t) {
             FileLogger.e(TAG, "Error en matchTemplates: " + t.getMessage());
             return new MatchResult(false, 0);
-        }
-    }
-
-    private static int toMxSecurityLevel(int secuLevel) {
-        if (secuLevel <= 0) return 3;
-        if (secuLevel <= 5) return secuLevel;
-        return Math.max(1, Math.min(5, (int) Math.ceil(secuLevel * 5.0 / 9.0)));
-    }
-
-    private static byte[] expandToHostBuffer(byte[] template) {
-        byte[] out = new byte[MX_HOST_BUFFER_SIZE];
-        System.arraycopy(template, 0, out, 0, Math.min(template.length, out.length));
-        return out;
-    }
-
-    private MatchAttempt tryHostMatchAllLevels(byte[] stored, byte[] live, int skipLevel, String mode) {
-        MatchAttempt last = null;
-        for (int level = 1; level <= 5; level++) {
-            if (level == skipLevel) continue;
-            last = tryHostMatch(stored, live, level, mode);
-            if (last.matched) return last;
-        }
-        return last != null ? last : new MatchAttempt(false);
-    }
-
-    private MatchAttempt tryHostMatch(byte[] stored, byte[] live, int mxLevel, String mode) {
-        int[] scoreOut = new int[] { 0 };
-        int scoreCode = IDFingerprintAlg.mxFingerMatch512Score_id(stored, live, scoreOut);
-        int matchCode = IDFingerprintAlg.mxFingerMatch512_id(live, stored, mxLevel);
-        boolean matched = matchCode == MX_MATCH_SUCCESS;
-
-        FileLogger.d(TAG, "matchTemplates(host " + mode + "): matchCode=" + matchCode
-                + ", scoreCode=" + scoreCode + ", score=" + scoreOut[0]
-                + ", mxLevel=" + mxLevel + ", matched=" + matched);
-        return new MatchAttempt(matched);
-    }
-
-    private static class MatchAttempt {
-        final boolean matched;
-
-        MatchAttempt(boolean matched) {
-            this.matched = matched;
         }
     }
 

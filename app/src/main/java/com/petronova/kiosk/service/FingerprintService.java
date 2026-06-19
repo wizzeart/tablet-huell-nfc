@@ -154,7 +154,7 @@ public class FingerprintService {
 
                 byte[] stored = hexToBytes(worker.huellaHex);
                 if (stored == null) continue;
-                if (stored.length != AppConfig.TEMPLATE_SIZE) {
+                if (stored.length < 16) { // descarta templates corruptos o vacíos (SourceAFIS > 1 KB)
                     skippedInvalidTemplateSize++;
                     continue;
                 }
@@ -169,7 +169,7 @@ public class FingerprintService {
             }
             if (skippedInvalidTemplateSize > 0) {
                 FileLogger.d(TAG, "Templates omitidos por tamaño incompatible: "
-                        + skippedInvalidTemplateSize + " (esperado " + AppConfig.TEMPLATE_SIZE + " bytes)");
+                        + skippedInvalidTemplateSize + " (demasiado pequeños — probablemente templates del lector anterior)");
             }
 
             if (bestMatch != null && bestScore >= AppConfig.MIN_CONFIDENCE) {

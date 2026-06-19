@@ -34,7 +34,7 @@ public final class AppConfig {
 
     // ─── Biometría ───────────────────────────────────────────────────────────
     public static final int MIN_CONFIDENCE    = BuildConfig.MIN_CONFIDENCE;
-    public static final int TEMPLATE_SIZE     = 512;
+    public static final int TEMPLATE_SIZE     = 0; // variable — templates SourceAFIS (ISO 19794-2)
     public static final int SECURITY_LEVEL    = 5;
 
     // ─── UI / UX ─────────────────────────────────────────────────────────────

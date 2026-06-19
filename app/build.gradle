@@ -36,7 +36,7 @@ android {
         buildConfigField "String", "AGENT_ID",           "\"${secrets.AGENT_ID}\""
         buildConfigField "String", "ADMIN_PASSWORD",     "\"${secrets.ADMIN_PASSWORD}\""
         buildConfigField "String", "EXIT_PIN",           "\"${secrets.EXIT_PIN}\""
-        buildConfigField "int",    "MIN_CONFIDENCE", '60'
+        buildConfigField "int",    "MIN_CONFIDENCE", '40'
 
         // Solo ABIs ARM (la tablet es arm64). Evita empaquetar las .so x86 de sherpa-onnx.
         ndk {
@@ -101,6 +101,9 @@ dependencies {
     // Las librerías nativas (.so) van en app/src/main/jniLibs (arm64-v8a y armeabi-v7a)
     // y el acceso GPIO está en android.zyapi.CommonApi (libzyapi_common.so).
     implementation files('libs/MxMscFingerApi.jar')
+
+    // SourceAFIS — extracción de minucias ISO/IEC 19794-2 y matching biométrico estándar
+    implementation 'com.machinezoo.sourceafis:sourceafis:3.18.0'
 
     // OkHttp — cliente HTTP para API Petronova
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
