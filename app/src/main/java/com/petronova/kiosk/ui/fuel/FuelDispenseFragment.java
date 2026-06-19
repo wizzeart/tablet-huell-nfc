@@ -440,8 +440,8 @@ public class FuelDispenseFragment extends Fragment {
     }
 
     private void cancelFingerprintScan() {
-        FingerprintService.getInstance().cancel();
         if (fingerprintScanTask != null) {
+            FingerprintService.getInstance().cancel();
             fingerprintScanTask.cancel(true);
             fingerprintScanTask = null;
         }

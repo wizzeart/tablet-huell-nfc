@@ -41,7 +41,10 @@ public class ScanViewModel extends ViewModel {
         if (state.getValue() == ScanState.SCANNING_FINGERPRINT) return;
         state.setValue(ScanState.SCANNING_FINGERPRINT);
         fingerprintPreview.setValue("");
+        submitScanTask();
+    }
 
+    private void submitScanTask() {
         currentScan = executor.submit(() -> {
             FingerprintService.ScanResult result =
                 FingerprintService.getInstance().scanFingerprint(AppConfig.SCAN_TIMEOUT_SECONDS);
@@ -52,6 +55,9 @@ public class ScanViewModel extends ViewModel {
             if (result.success) {
                 detectedWorker.postValue(result.worker);
                 state.postValue(ScanState.SUCCESS);
+            } else if (result.error != null && result.error.contains("timeout o sin hardware")) {
+                // Timeout del sensor: reiniciar escaneo silenciosamente sin mostrar error
+                if (!executor.isShutdown()) submitScanTask();
             } else {
                 errorMessage.postValue(result.error);
                 state.postValue(ScanState.ERROR);
