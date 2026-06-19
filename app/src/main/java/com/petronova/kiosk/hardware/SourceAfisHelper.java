@@ -1,6 +1,7 @@
 package com.petronova.kiosk.hardware;
 
 import com.machinezoo.sourceafis.FingerprintImage;
+import com.machinezoo.sourceafis.FingerprintImageOptions;
 import com.machinezoo.sourceafis.FingerprintMatcher;
 import com.machinezoo.sourceafis.FingerprintTemplate;
 import com.petronova.kiosk.util.FileLogger;
@@ -36,8 +37,10 @@ public final class SourceAfisHelper {
             return null;
         }
         try {
-            FingerprintTemplate template = new FingerprintTemplate(
-                new FingerprintImage(raw.width, raw.height, raw.pixels).dpi(SENSOR_DPI));
+            FingerprintImage image = new FingerprintImage(
+                raw.width, raw.height, raw.pixels,
+                new FingerprintImageOptions().dpi(SENSOR_DPI));
+            FingerprintTemplate template = new FingerprintTemplate(image);
             return template.toByteArray();
         } catch (Throwable t) {
             FileLogger.e(TAG, "Error creando template SourceAFIS: " + t.getMessage());
