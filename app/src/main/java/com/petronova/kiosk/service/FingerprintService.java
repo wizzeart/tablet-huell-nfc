@@ -41,6 +41,9 @@ public class FingerprintService {
     private       boolean               running = false;
     private       List<Worker>          workersCache = null;
 
+    /** MAX(updated_at) conocido de la última carga de cache; para polling diferencial. */
+    private       java.sql.Timestamp    lastKnownUpdatedAt = null;
+
     private FingerprintService() {
         this.sensor = FingerprintControllerProvider.create();
     }
@@ -61,6 +64,7 @@ public class FingerprintService {
         }
         try {
             workersCache = WorkerDao.getWorkersWithHuella();
+            lastKnownUpdatedAt = WorkerDao.getMaxUpdatedAt();
             FileLogger.i(TAG, (workersCache != null ? workersCache.size() : 0) + " trabajadores cargados de BD");
         } catch (SQLException e) {
             FileLogger.e(TAG, "Error cargando workers de BD: " + e.getMessage());
@@ -142,39 +146,28 @@ public class FingerprintService {
             FileLogger.d(TAG, "Comparando con " + workersCache.size() + " trabajadores...");
 
             // 5. Matching iterativo (equivalente al bucle en secugen_service.py:154)
-            Worker bestMatch = null;
-            int    bestScore = -1;
-            int    skippedInvalidTemplateSize = 0;
+            MatchOutcome outcome = matchAgainstCache(template);
+            if (outcome.cancelled) {
+                return ScanResult.error("Escaneo cancelado", previewBase64);
+            }
+            if (outcome.isMatch()) {
+                FileLogger.i(TAG, "MATCH: " + outcome.worker.nombre + " CI:" + outcome.worker.carnet + " score:" + outcome.score);
+                return ScanResult.success(outcome.worker, outcome.score, previewBase64);
+            }
 
-            for (Worker worker : workersCache) {
-                if (cancel.get()) {
+            // 6. Huella no reconocida: la cache puede estar obsoleta (huella registrada desde
+            //    otro dispositivo/web). Intentar re-sincronizar con la BD y re-comparar antes
+            //    de darla por no reconocida. Sin impacto visual: reusa el template ya capturado.
+            if (resyncCacheIfStale()) {
+                FileLogger.d(TAG, "Cache re-sincronizada (" + workersCache.size() + " trabajadores), re-comparando...");
+                outcome = matchAgainstCache(template);
+                if (outcome.cancelled) {
                     return ScanResult.error("Escaneo cancelado", previewBase64);
                 }
-                if (worker.huellaHex == null || worker.huellaHex.isEmpty()) continue;
-
-                byte[] stored = hexToBytes(worker.huellaHex);
-                if (stored == null) continue;
-                if (stored.length < 16) { // descarta templates corruptos o vacíos (SourceAFIS > 1 KB)
-                    skippedInvalidTemplateSize++;
-                    continue;
+                if (outcome.isMatch()) {
+                    FileLogger.i(TAG, "MATCH (tras resync): " + outcome.worker.nombre + " CI:" + outcome.worker.carnet + " score:" + outcome.score);
+                    return ScanResult.success(outcome.worker, outcome.score, previewBase64);
                 }
-
-                MatchResult mr = sensor.matchTemplates(template, stored, AppConfig.SECURITY_LEVEL);
-                // Log.v(TAG, worker.nombre + " (ID " + worker.id + "): matched=" + mr.matched + ", score=" + mr.score);
-
-                if (mr.matched && mr.score > bestScore) {
-                    bestScore = mr.score;
-                    bestMatch = worker;
-                }
-            }
-            if (skippedInvalidTemplateSize > 0) {
-                FileLogger.d(TAG, "Templates omitidos por tamaño incompatible: "
-                        + skippedInvalidTemplateSize + " (demasiado pequeños — probablemente templates del lector anterior)");
-            }
-
-            if (bestMatch != null && bestScore >= AppConfig.MIN_CONFIDENCE) {
-                FileLogger.i(TAG, "MATCH: " + bestMatch.nombre + " CI:" + bestMatch.carnet + " score:" + bestScore);
-                return ScanResult.success(bestMatch, bestScore, previewBase64);
             }
 
             FileLogger.i(TAG, "Huella no reconocida");
@@ -187,6 +180,86 @@ public class FingerprintService {
             sensor.setLed(false);
             lock.unlock();
         }
+    }
+
+    // ─── Matching y sincronización de cache ───────────────────────────────────
+
+    /** Compara el template contra todos los workers de la cache y devuelve el mejor match. */
+    private MatchOutcome matchAgainstCache(byte[] template) {
+        Worker bestMatch = null;
+        int    bestScore = -1;
+        int    skippedInvalidTemplateSize = 0;
+
+        List<Worker> cache = workersCache;
+        for (Worker worker : cache) {
+            if (cancel.get()) {
+                return MatchOutcome.cancelled();
+            }
+            if (worker.huellaHex == null || worker.huellaHex.isEmpty()) continue;
+
+            byte[] stored = hexToBytes(worker.huellaHex);
+            if (stored == null) continue;
+            if (stored.length < 16) { // descarta templates corruptos o vacíos (SourceAFIS > 1 KB)
+                skippedInvalidTemplateSize++;
+                continue;
+            }
+
+            MatchResult mr = sensor.matchTemplates(template, stored, AppConfig.SECURITY_LEVEL);
+            if (mr.matched && mr.score > bestScore) {
+                bestScore = mr.score;
+                bestMatch = worker;
+            }
+        }
+        if (skippedInvalidTemplateSize > 0) {
+            FileLogger.d(TAG, "Templates omitidos por tamaño incompatible: "
+                    + skippedInvalidTemplateSize + " (demasiado pequeños — probablemente templates del lector anterior)");
+        }
+        return new MatchOutcome(bestMatch, bestScore);
+    }
+
+    /**
+     * Re-sincroniza la cache desde la BD solo si está obsoleta, mediante polling diferencial:
+     * primero consulta MAX(updated_at) (query liviana, no transfiere filas) y únicamente cuando
+     * ese timestamp cambió respecto a la última carga ejecuta el getWorkersWithHuella() completo.
+     *
+     * El propio gate de updated_at limita la consulta pesada a cuando realmente hay datos nuevos,
+     * así que no hace falta un cooldown de tiempo: un trabajador recién registrado entra de
+     * inmediato (sin esperar ningún minuto) y la BD nunca se recarga en vano. El poll es barato
+     * y los escaneos están naturalmente espaciados (captura del sensor + lock), por lo que se
+     * ejecuta en cada huella no reconocida sin riesgo de saturar la BD.
+     *
+     * @return true si la cache se recargó con datos nuevos (procede re-comparar); false si no.
+     */
+    private boolean resyncCacheIfStale() {
+        try {
+            java.sql.Timestamp dbMax = WorkerDao.getMaxUpdatedAt();
+            if (java.util.Objects.equals(dbMax, lastKnownUpdatedAt)) {
+                return false; // nada cambió en BD desde la última carga
+            }
+            workersCache = WorkerDao.getWorkersWithHuella();
+            lastKnownUpdatedAt = dbMax;
+            return true;
+        } catch (SQLException e) {
+            FileLogger.w(TAG, "No se pudo re-sincronizar la cache de huellas: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /** Resultado de una pasada de matching iterativo. */
+    private static final class MatchOutcome {
+        final Worker  worker;
+        final int     score;
+        final boolean cancelled;
+
+        MatchOutcome(Worker worker, int score) {
+            this.worker = worker; this.score = score; this.cancelled = false;
+        }
+        private MatchOutcome() {
+            this.worker = null; this.score = -1; this.cancelled = true;
+        }
+        static MatchOutcome cancelled() { return new MatchOutcome(); }
+
+        boolean isMatch() { return worker != null && score >= AppConfig.MIN_CONFIDENCE; }
     }
 
     // ─── Registro (enrolamiento) ──────────────────────────────────────────────
@@ -243,6 +316,7 @@ public class FingerprintService {
 
             // 5. Recargar cache (equivalente a _load_workers_from_db() en Python)
             workersCache = WorkerDao.getWorkersWithHuella();
+            lastKnownUpdatedAt = WorkerDao.getMaxUpdatedAt();
             FileLogger.i(TAG, "Huella registrada correctamente para ID:" + workerId);
             return EnrollResult.success(previewBase64);
 

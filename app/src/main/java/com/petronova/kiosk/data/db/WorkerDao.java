@@ -37,6 +37,10 @@ public final class WorkerDao {
         "SELECT id, \"name\", NULL::text, carnet, huella FROM public.users " +
         "WHERE huella IS NOT NULL AND activo = TRUE AND deleted_at IS NULL";
 
+    private static final String SQL_MAX_UPDATED_AT =
+        "SELECT MAX(updated_at) FROM public.users " +
+        "WHERE huella IS NOT NULL AND activo = TRUE AND deleted_at IS NULL";
+
     private static final String SQL_SAVE_HUELLA =
         "UPDATE public.users SET huella = ?, updated_at = NOW() WHERE id = ?";
 
@@ -108,6 +112,22 @@ public final class WorkerDao {
             }
         }
         return result;
+    }
+
+    // ─── Polling ligero: MAX(updated_at) de las huellas activas ───────────────
+
+    /**
+     * Devuelve el MAX(updated_at) de los trabajadores con huella activa, o null si no hay ninguno.
+     * Query muy liviana (no transfiere filas) usada para detectar si la cache está obsoleta
+     * antes de recargarla completa.
+     */
+    public static java.sql.Timestamp getMaxUpdatedAt() throws SQLException {
+        try (Connection c = DbConnectionFactory.getConnection();
+             PreparedStatement ps = c.prepareStatement(SQL_MAX_UPDATED_AT);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) return rs.getTimestamp(1);
+            return null;
+        }
     }
 
     // ─── Equivalente: guardar_huella_secugen_trabajador() ────────────────────
