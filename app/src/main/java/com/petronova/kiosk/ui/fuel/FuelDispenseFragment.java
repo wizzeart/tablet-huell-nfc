@@ -1,5 +1,9 @@
 package com.petronova.kiosk.ui.fuel;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
@@ -20,6 +24,7 @@ import com.petronova.kiosk.R;
 import com.petronova.kiosk.audio.TtsManager;
 import com.petronova.kiosk.config.AppConfig;
 import com.petronova.kiosk.data.local.LocalConfigStore;
+import com.petronova.kiosk.data.repo.WorkerRepository;
 import com.petronova.kiosk.databinding.FragmentFuelDispenseBinding;
 import com.petronova.kiosk.network.PetronovaApiClient;
 import com.petronova.kiosk.sensors.SensorCoordinator;
@@ -42,6 +47,10 @@ public class FuelDispenseFragment extends Fragment {
     private static final String ARG_WORKER_NAME = "worker_name";
     private static final String ARG_WORKER_CI = "worker_ci";
 
+    /** Acción del broadcast del escáner QR físico (hardware QS805) — igual que en ScanFragment. */
+    private static final String ACTION_SCAN_RESULT = "com.qs.scancode";
+    private static final int CI_DIGITS = 11;
+
     private FragmentFuelDispenseBinding binding;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final List<FuelAssignment> assignments = new ArrayList<>();
@@ -56,8 +65,11 @@ public class FuelDispenseFragment extends Fragment {
     private ConfirmStep confirmStep = ConfirmStep.NONE;
     private Future<?> fingerprintScanTask;
     private android.view.animation.Animation confirmPulse;
+    /** Evita doble registro cuando dos métodos (huella/NFC/QR) confirman casi a la vez. */
+    private boolean confirmHandled;
+    private BroadcastReceiver qrConfirmReceiver;
 
-    private enum ConfirmStep { NONE, INVOICE, FINGERPRINT }
+    private enum ConfirmStep { NONE, INVOICE, CONFIRMING }
 
     public static FuelDispenseFragment newInstance(int workerId, String workerName, String workerCi) {
         FuelDispenseFragment f = new FuelDispenseFragment();
@@ -87,7 +99,7 @@ public class FuelDispenseFragment extends Fragment {
         binding.tvFuelWorker.setText(getString(R.string.fuel_worker) + ": " + workerName + "  CI: " + workerCi);
         binding.btnFuelBack.setOnClickListener(v -> handleConfirmBack());
         binding.btnFuelDispense.setOnClickListener(v -> confirmRetiro());
-        binding.btnFuelConfirmProceed.setOnClickListener(v -> startFingerprintConfirmation());
+        binding.btnFuelConfirmProceed.setOnClickListener(v -> startConfirmation());
         binding.btnFuelConfirmCancel.setOnClickListener(v -> handleConfirmBack());
         setBusy(true, getString(R.string.fuel_loading));
         loadAssignments();
@@ -96,22 +108,23 @@ public class FuelDispenseFragment extends Fragment {
     @Override
     public void onPause() {
         super.onPause();
-        if (confirmStep == ConfirmStep.FINGERPRINT) {
+        if (confirmStep == ConfirmStep.CONFIRMING) {
             cancelFingerprintScan();
+            stopConfirmListeners();
         }
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        if (confirmStep == ConfirmStep.FINGERPRINT) {
-            SensorCoordinator.getInstance().activateFingerprint();
+        if (confirmStep == ConfirmStep.CONFIRMING) {
+            startConfirmListeners();
             scanFingerprintForConfirmation();
         }
     }
 
     private void handleConfirmBack() {
-        if (confirmStep == ConfirmStep.FINGERPRINT) {
+        if (confirmStep == ConfirmStep.CONFIRMING) {
             showWithdrawalInvoice();
             return;
         }
@@ -250,7 +263,17 @@ public class FuelDispenseFragment extends Fragment {
 
     private void renderAssignments() {
         if (binding == null) return;
+
+        // Solo los usuarios con bidón autorizado eligen el tipo de combustible a mano (lo
+        // retiran en un recipiente externo). Si NO tiene bidón, el combustible queda
+        // determinado por el vehículo que seleccione, así que ocultamos esta selección.
+        int assignmentVisibility = bidonAuthorized ? View.VISIBLE : View.GONE;
+        binding.tvFuelAssignmentsLabel.setVisibility(assignmentVisibility);
+        binding.llFuelAssignments.setVisibility(assignmentVisibility);
+
         binding.llFuelAssignments.removeAllViews();
+        if (!bidonAuthorized) return;
+
         for (FuelAssignment assignment : assignments) {
             Button btn = new Button(requireContext());
             btn.setText(assignment.fuelType + "  " + formatLiters(assignment.qty) + " L");
@@ -325,6 +348,7 @@ public class FuelDispenseFragment extends Fragment {
         if (binding == null || selected == null) return;
 
         cancelFingerprintScan();
+        stopConfirmListeners();
         SensorCoordinator.getInstance().deactivateAll();
         confirmStep = ConfirmStep.INVOICE;
 
@@ -357,10 +381,11 @@ public class FuelDispenseFragment extends Fragment {
         binding.tvInvoiceWithdraw.setText(getString(R.string.fuel_invoice_liters_value, formatLiters(pendingLiters)));
     }
 
-    private void startFingerprintConfirmation() {
+    private void startConfirmation() {
         if (binding == null || confirmStep != ConfirmStep.INVOICE) return;
 
-        confirmStep = ConfirmStep.FINGERPRINT;
+        confirmStep = ConfirmStep.CONFIRMING;
+        confirmHandled = false;
         binding.overlayFuelFingerprint.setVisibility(View.VISIBLE);
         binding.tvFuelConfirmInstruction.setText(
                 getString(R.string.fuel_confirm_fingerprint, formatLiters(pendingLiters)));
@@ -374,22 +399,109 @@ public class FuelDispenseFragment extends Fragment {
         }
         binding.ivFuelConfirmIcon.startAnimation(confirmPulse);
 
-        SensorCoordinator.getInstance().activateFingerprint();
+        // Confirmación por los 3 métodos a la vez: huella, NFC y QR.
+        startConfirmListeners();
         scanFingerprintForConfirmation();
     }
 
+    // ─── Listeners NFC + QR para la confirmación ───────────────────────────────
+
+    /** Activa la lectura NFC y el receptor del escáner QR mientras dura la confirmación. */
+    private void startConfirmListeners() {
+        if (getActivity() == null) return;
+        SensorCoordinator.getInstance().activateNfc();
+        ((MainActivity) requireActivity()).getNfcController().startReading(this::onConfirmNfc);
+
+        if (qrConfirmReceiver == null) {
+            qrConfirmReceiver = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    if (intent == null || intent.getExtras() == null) return;
+                    onConfirmQr(intent.getExtras().getString("data"));
+                }
+            };
+            ContextCompat.registerReceiver(requireContext(), qrConfirmReceiver,
+                    new IntentFilter(ACTION_SCAN_RESULT), ContextCompat.RECEIVER_EXPORTED);
+        }
+    }
+
+    /** Detiene la lectura NFC y desregistra el receptor QR. Idempotente. */
+    private void stopConfirmListeners() {
+        if (getActivity() != null) {
+            ((MainActivity) requireActivity()).getNfcController().stopReading();
+        }
+        if (qrConfirmReceiver != null) {
+            try { requireContext().unregisterReceiver(qrConfirmReceiver); } catch (Exception ignore) {}
+            qrConfirmReceiver = null;
+        }
+    }
+
+    /** Tarjeta NFC detectada durante la confirmación: válida si pertenece al usuario identificado. */
+    private void onConfirmNfc(String uid) {
+        if (confirmStep != ConfirmStep.CONFIRMING || confirmHandled || !isAdded()) return;
+        WorkerRepository.getInstance().findByNfc(uid).observe(getViewLifecycleOwner(), result -> {
+            if (confirmStep != ConfirmStep.CONFIRMING || confirmHandled) return;
+            if (result.success && result.data != null && result.data.id == workerId) {
+                onConfirmSuccess("NFC");
+            } else {
+                showConfirmMismatch();
+            }
+        });
+    }
+
+    /** QR leído durante la confirmación: válido si el CI coincide con el usuario identificado. */
+    private void onConfirmQr(String data) {
+        if (confirmStep != ConfirmStep.CONFIRMING || confirmHandled || !isAdded()) return;
+        String ci = extractCi(data);
+        if (ci == null) {
+            showConfirmMismatch();
+            return;
+        }
+        WorkerRepository.getInstance().findByCi(ci).observe(getViewLifecycleOwner(), result -> {
+            if (confirmStep != ConfirmStep.CONFIRMING || confirmHandled) return;
+            if (result.success && result.data != null && result.data.id == workerId) {
+                onConfirmSuccess("QR");
+            } else {
+                showConfirmMismatch();
+            }
+        });
+    }
+
+    /** Confirmación exitosa por cualquier método: registra el consumo una sola vez. */
+    private void onConfirmSuccess(String method) {
+        if (confirmHandled || !isAdded()) return;
+        confirmHandled = true;
+        appendLog("Retiro confirmado por " + method + " para " + workerName);
+        cancelFingerprintScan();
+        stopConfirmListeners();
+        hideConfirmationScreen();
+        setBusy(true, getString(R.string.fuel_registering));
+        executor.execute(() -> registerConsumption(pendingLiters));
+    }
+
+    /** Muestra y anuncia que la identificación no coincide, sin abortar la confirmación. */
+    private void showConfirmMismatch() {
+        if (binding == null || confirmStep != ConfirmStep.CONFIRMING || confirmHandled) return;
+        String msg = getString(R.string.fuel_confirm_mismatch);
+        binding.tvFuelConfirmStatus.setText(msg);
+        ToastSpeaker.show(requireContext(), msg);
+        TtsManager.getInstance().speak(msg);
+    }
+
     private void scanFingerprintForConfirmation() {
-        if (confirmStep != ConfirmStep.FINGERPRINT || binding == null || !isAdded()) return;
+        if (confirmStep != ConfirmStep.CONFIRMING || binding == null || !isAdded()) return;
 
         cancelFingerprintScan();
         fingerprintScanTask = executor.submit(() -> {
             FingerprintService.ScanResult result = FingerprintService.getInstance()
                     .scanFingerprint(AppConfig.SCAN_TIMEOUT_SECONDS);
 
-            if (!isAdded() || getActivity() == null || confirmStep != ConfirmStep.FINGERPRINT) return;
+            if (!isAdded() || getActivity() == null
+                    || confirmStep != ConfirmStep.CONFIRMING || confirmHandled) return;
 
             getActivity().runOnUiThread(() -> {
-                if (!isAdded() || binding == null || confirmStep != ConfirmStep.FINGERPRINT) return;
+                if (!isAdded() || binding == null
+                        || confirmStep != ConfirmStep.CONFIRMING || confirmHandled) return;
 
                 if (!result.previewBase64.isEmpty()) {
                     android.graphics.Bitmap bmp =
@@ -402,21 +514,23 @@ public class FuelDispenseFragment extends Fragment {
                 }
 
                 if (result.success && result.worker != null && result.worker.id == workerId) {
-                    appendLog("Huella confirmada para " + workerName);
-                    hideConfirmationScreen();
-                    setBusy(true, getString(R.string.fuel_registering));
-                    executor.execute(() -> registerConsumption(pendingLiters));
+                    onConfirmSuccess("huella");
                     return;
                 }
 
-                String msg = result.success && result.worker != null
-                        ? getString(R.string.fuel_confirm_mismatch)
-                        : (result.error != null ? result.error : getString(R.string.fuel_confirm_failed));
-                binding.tvFuelConfirmStatus.setText(msg);
-                ToastSpeaker.show(requireContext(), msg);
-                TtsManager.getInstance().speak(msg);
+                if (result.success && result.worker != null) {
+                    // Huella reconocida pero de otro usuario.
+                    showConfirmMismatch();
+                } else if (result.error != null && !result.error.contains("timeout o sin hardware")) {
+                    // Error real del sensor (no el timeout silencioso de re-captura).
+                    binding.tvFuelConfirmStatus.setText(result.error);
+                }
+
+                // El lector de huella se reintenta solo; NFC y QR siguen escuchando en paralelo.
                 binding.getRoot().postDelayed(() -> {
-                    if (confirmStep == ConfirmStep.FINGERPRINT && isAdded()) scanFingerprintForConfirmation();
+                    if (confirmStep == ConfirmStep.CONFIRMING && !confirmHandled && isAdded()) {
+                        scanFingerprintForConfirmation();
+                    }
                 }, AppConfig.MODAL_AUTO_CLOSE_MS);
             });
         });
@@ -424,6 +538,7 @@ public class FuelDispenseFragment extends Fragment {
 
     private void cancelConfirmationFlow() {
         cancelFingerprintScan();
+        stopConfirmListeners();
         SensorCoordinator.getInstance().deactivateAll();
         hideConfirmationScreen();
         setBusy(false, getString(R.string.fuel_select_assignment));
@@ -431,12 +546,31 @@ public class FuelDispenseFragment extends Fragment {
 
     private void hideConfirmationScreen() {
         confirmStep = ConfirmStep.NONE;
+        stopConfirmListeners();
         if (binding == null) return;
         binding.ivFuelConfirmIcon.clearAnimation();
         binding.overlayFuelFingerprint.setVisibility(View.GONE);
         binding.llFuelConfirmPanel.setVisibility(View.GONE);
         binding.fuelContent.setVisibility(View.VISIBLE);
         SensorCoordinator.getInstance().deactivateAll();
+    }
+
+    /** Extrae el CI (11 dígitos) que sigue a "CI:" en el texto del QR. Igual que ScanViewModel. */
+    @Nullable
+    private static String extractCi(@Nullable String data) {
+        if (data == null) return null;
+        int idx = data.toUpperCase(Locale.US).indexOf("CI:");
+        if (idx < 0) return null;
+        StringBuilder sb = new StringBuilder(CI_DIGITS);
+        for (int i = idx + 3; i < data.length() && sb.length() < CI_DIGITS; i++) {
+            char c = data.charAt(i);
+            if (Character.isDigit(c)) {
+                sb.append(c);
+            } else if (sb.length() > 0) {
+                break;
+            }
+        }
+        return sb.length() == CI_DIGITS ? sb.toString() : null;
     }
 
     private void cancelFingerprintScan() {
@@ -450,6 +584,7 @@ public class FuelDispenseFragment extends Fragment {
     @Override
     public void onDestroyView() {
         cancelFingerprintScan();
+        stopConfirmListeners();
         confirmStep = ConfirmStep.NONE;
         if (binding != null) binding.ivFuelConfirmIcon.clearAnimation();
         confirmPulse = null;

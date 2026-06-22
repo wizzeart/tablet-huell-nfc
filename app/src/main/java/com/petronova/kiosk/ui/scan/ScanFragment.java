@@ -47,7 +47,6 @@ public class ScanFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         viewModel = new ViewModelProvider(this).get(ScanViewModel.class);
         observeViewModel();
-        startScan();
 
         // Animar el SVG de la huella
         android.view.animation.Animation pulse = android.view.animation.AnimationUtils.loadAnimation(requireContext(), R.anim.neon_pulse);
@@ -73,6 +72,9 @@ public class ScanFragment extends Fragment {
         };
         ContextCompat.registerReceiver(requireContext(), qrScanReceiver,
                 new IntentFilter(ACTION_SCAN_RESULT), ContextCompat.RECEIVER_EXPORTED);
+
+        // Iniciar el escaneo de huella al entrar (y al volver de otra pantalla).
+        startScan();
     }
 
     @Override
@@ -85,6 +87,10 @@ public class ScanFragment extends Fragment {
             requireContext().unregisterReceiver(qrScanReceiver);
             qrScanReceiver = null;
         }
+        // Cancelar el escaneo de huella para liberar el lock del sensor: si el trabajador
+        // se identificó por NFC/QR, el bucle de huella seguiría ocupando el sensor y la
+        // siguiente pantalla (confirmación de combustible) recibiría "Sensor ocupado".
+        viewModel.cancelScan();
     }
 
     // ─── Observar ViewModel ──────────────────────────────────────────────────
