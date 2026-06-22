@@ -15,6 +15,20 @@ if (secretsFile.exists()) {
     )
 }
 
+// Credenciales de firma del APK release. Llegan por variables de entorno (CI) o por
+// keystore.properties (local, gitignoreado). Si no hay keystore, el release sale SIN
+// firmar (solo para inspección; no instalable). Para builds locales se usa debug.
+def keystorePropsFile = rootProject.file("keystore.properties")
+def keystoreProps = new Properties()
+if (keystorePropsFile.exists()) {
+    keystoreProps.load(new FileInputStream(keystorePropsFile))
+}
+def ksStorePath = System.getenv("KEYSTORE_FILE")     ?: keystoreProps.getProperty("storeFile")
+def ksStorePass = System.getenv("KEYSTORE_PASSWORD") ?: keystoreProps.getProperty("storePassword")
+def ksKeyAlias  = System.getenv("KEY_ALIAS")         ?: keystoreProps.getProperty("keyAlias")
+def ksKeyPass   = System.getenv("KEY_PASSWORD")      ?: keystoreProps.getProperty("keyPassword")
+def hasSigning  = ksStorePath != null && !ksStorePath.trim().isEmpty() && file(ksStorePath).exists()
+
 android {
     namespace 'com.petronova.kiosk'
     compileSdk 34
@@ -23,8 +37,10 @@ android {
         applicationId "com.petronova.kiosk"
         minSdk 26
         targetSdk 34
-        versionCode 1
-        versionName "1.0"
+        // En CI se sobrescribe versionCode con el nº de build (-PversionCodeOverride)
+        // para que cada APK publicado sea instalable encima del anterior.
+        versionCode (project.hasProperty('versionCodeOverride') ? project.versionCodeOverride.toInteger() : 1)
+        versionName (project.hasProperty('versionNameOverride')  ? project.versionNameOverride               : "1.0")
 
         // Credenciales cargadas desde secrets.properties (nunca hardcodeadas aquí)
         buildConfigField "String", "DB_HOST",            "\"${secrets.DB_HOST}\""
@@ -44,6 +60,17 @@ android {
         }
     }
 
+    signingConfigs {
+        release {
+            if (hasSigning) {
+                storeFile     file(ksStorePath)
+                storePassword ksStorePass
+                keyAlias      ksKeyAlias
+                keyPassword   ksKeyPass
+            }
+        }
+    }
+
     buildFeatures {
         viewBinding true
         buildConfig true
@@ -56,8 +83,15 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled true
+            // minify DESACTIVADO: el pipeline publica el APK como "latest" sin validación
+            // manual previa, así que el release se comporta igual que el debug ya probado
+            // (sin riesgo de que R8/ProGuard rompa reflexión/JNI en silencio). Las keep
+            // rules de proguard-rules.pro quedan listas por si se reactiva tras validar.
+            minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (hasSigning) {
+                signingConfig signingConfigs.release
+            }
         }
         debug {
             debuggable true
