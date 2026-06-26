@@ -139,7 +139,7 @@ public class FingerprintService {
                 try {
                     workersCache = WorkerDao.getWorkersWithHuella();
                 } catch (SQLException e) {
-                    return ScanResult.error("Error accediendo a BD: " + e.getMessage(), previewBase64);
+                    return ScanResult.error("Error accediendo a BD: "  , previewBase64);
                 }
             }
 
